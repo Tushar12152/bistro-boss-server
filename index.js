@@ -1,5 +1,5 @@
 const express = require('express');
-const { MongoClient, ServerApiVersion } = require('mongodb');
+const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const app=express()
 require('dotenv').config()
 
@@ -29,6 +29,55 @@ async function run() {
   try {
     // Connect the client to the server	(optional starting in v4.7)
     // await client.connect();
+
+    const menuCollection=client.db("bistroDB").collection('menuCollection')
+    const reviewsCollection=client.db("bistroDB").collection('reviewsCollection')
+    const cartsCollection=client.db("bistroDB").collection('carts')
+
+
+
+    app.get('/menu',async(req,res)=>{
+          const result=await menuCollection.find().toArray();
+          res.send(result)
+    })
+
+    app.get('/reviews',async(req,res)=>{
+          const result=await reviewsCollection.find().toArray();
+          res.send(result)
+          
+
+    })
+
+ 
+
+    //carts collection
+
+    app.post('/carts',async(req,res)=>{
+         const  cartItem=req.body;
+        //  console.log(cartItem);
+         const result= await cartsCollection.insertOne(cartItem)
+         res.send(result)
+    })
+
+    app.get('/carts',async(req,res)=>{
+          const email=req.query.email;
+          const query={ userEmail:email}
+          const result=await cartsCollection.find(query).toArray()
+          res.send(result)
+    })
+
+    app.delete('/carts/:id',async(req,res)=>{
+         const id=req.params.id;
+         const query={_id:new ObjectId(id)}
+
+         const result = await cartsCollection.deleteOne( query);
+         res.send(result)
+    })
+
+
+
+
+
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
     console.log("Pinged your deployment. You successfully connected to MongoDB!");
