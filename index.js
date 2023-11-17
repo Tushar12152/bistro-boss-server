@@ -49,7 +49,7 @@ app.post('/jwt',async (req,res)=>{
 //verify token middleware
 
 const verifyToken=(req,res,next)=>{
-  console.log('inside verify token :',req.headers.authorizaton)
+  // console.log('inside verify token :',req.headers.authorizaton)
   if(!req.headers?.authorizaton){
      return res.status(401).send({message:'unauthorized access'})
   }
@@ -60,12 +60,27 @@ const verifyToken=(req,res,next)=>{
       return res.status(401).send({message:'unauthorized access'})
     }
 
+
     req.decoded=decoded
     next()
   });
 
- 
 
+
+}
+
+
+//use verify admin after verify token
+
+const verifyAdmin=async(req,res,next)=>{
+  const email=req.decoded.email;
+  const query={email:email}
+  const user=await usersCollection.findOne(query)
+  const isAdmin=user?.role==='admin'
+  if(!isAdmin){
+    return res.status(403).send({message:'forbidden access'})
+  }
+  next()
 }
 
 
@@ -76,7 +91,7 @@ const verifyToken=(req,res,next)=>{
     //users related API's
 
 
-    app.get('/users',verifyToken,async(req,res)=>{
+    app.get('/users',verifyToken,verifyAdmin,async(req,res)=>{
      
          const result=await usersCollection.find().toArray()
          res.send(result)
@@ -99,7 +114,7 @@ const verifyToken=(req,res,next)=>{
     })
 
 
-    app.patch('/users/admin/:id',async(req,res)=>{
+    app.patch('/users/admin/:id',verifyToken,verifyAdmin,async(req,res)=>{
           const id=req.params.id;
           const filter={_id:new ObjectId(id)}
 
@@ -114,7 +129,7 @@ const verifyToken=(req,res,next)=>{
     })
 
 
-    app.delete('/users/:id',async(req,res)=>{
+    app.delete('/users/:id',verifyToken,verifyAdmin,async(req,res)=>{
         const id=req.params.id;
 
         const query= {_id:new ObjectId(id)}
@@ -149,6 +164,21 @@ const verifyToken=(req,res,next)=>{
 
     app.get('/menu',async(req,res)=>{
           const result=await menuCollection.find().toArray();
+          res.send(result)
+    })
+
+    app.delete('/menu/:id',verifyToken,async(req,res)=>{
+             const id=req.params.id;
+             const query={_id:new ObjectId(id)}
+             const result=await menuCollection.deleteOne(query)
+             res.send(result)
+    }
+    )
+
+    app.post('/menu',verifyToken,async(req,res)=>{
+           const menuItem=req.body;
+           console.log(menuItem);
+          const result=await menuCollection.insertOne(menuItem)
           res.send(result)
     })
 
