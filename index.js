@@ -2,6 +2,7 @@ const express = require('express');
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const app=express()
 const jwt=require('jsonwebtoken')
+const stripe=require('stripe')(process.env.STRIPE_SECRET_KEY)
 require('dotenv').config()
 
 const cors = require('cors');
@@ -94,6 +95,7 @@ const verifyAdmin=async(req,res,next)=>{
     app.get('/users',verifyToken,verifyAdmin,async(req,res)=>{
      
          const result=await usersCollection.find().toArray()
+        
          res.send(result)
     })
 
@@ -168,11 +170,14 @@ const verifyAdmin=async(req,res,next)=>{
     })
 
 
-    app.get('/menu/:id',async(req,res)=>{
+    app.get('/menu/:id',verifyToken,async(req,res)=>{
            const id=req.params.id;
-           const  query={_id:new ObjectId(id)}
+          //  console.log(id);
+           const  query={_id : new ObjectId(id)}
            const result= await menuCollection.findOne(query)
+           
            res.send(result)
+
     })
 
 
@@ -181,8 +186,7 @@ const verifyAdmin=async(req,res,next)=>{
              const query={_id:new ObjectId(id)}
              const result=await menuCollection.deleteOne(query)
              res.send(result)
-    }
-    )
+    } )
 
     app.post('/menu',verifyToken,async(req,res)=>{
            const menuItem=req.body;
@@ -225,6 +229,27 @@ const verifyAdmin=async(req,res,next)=>{
     })
 
 
+
+    //payment intent
+
+    app.post('/create-payment-intent',async(req,res)=>{
+         const {price}=req.body;
+          const amount=parseInt(price*100)
+
+
+          const paymentIntent=await stripe.paymentIntents.create({
+               amount:amount,
+               currency:'usd',
+               payment_method_types:[
+                'card'
+               ]
+          })
+
+          res.send({
+            clientSecret:paymentIntent.client_secret
+          })
+
+    })
 
 
 
