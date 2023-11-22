@@ -259,10 +259,11 @@ const verifyAdmin=async(req,res,next)=>{
 
 
 
+
     app.get('/payments/:email',verifyToken, async(req,res)=>{
 
       const query= {email:req.params.email}
-      console.log(req.params.email);
+      // console.log(req.params.email);
       if(req.params.email!==req.decoded?.email){
              return res.status(403).send({message:'forbidden access'})
       }
@@ -289,11 +290,38 @@ const verifyAdmin=async(req,res,next)=>{
 
 
 
+   app.get('/admin-stats',verifyToken,async (req,res)=>{
+         const users= await usersCollection.estimatedDocumentCount();
+         const menuItems=await menuCollection.estimatedDocumentCount();
+         const orders=await paymentsCollection.estimatedDocumentCount();
+
+//this is not best way
+        //  const payments=await paymentsCollection.find().toArray();
+        //  const revenue= payments.reduce((total,payment)=>total+payment.price,0);
+
+
+const result= await paymentsCollection.aggregate([
+  {
+    $group:{
+        _id:null,
+        totalRevenue:{
+           $sum:'$price'
+        }
+    }
+  }
+]).toArray()
+
+const revenue= result.length>0? result[0].totalRevenue:0;
+
+         res.send({users,menuItems,orders,revenue})
+   })
+
+   
 
 
     // Send a ping to confirm a successful connection
-    await client.db("admin").command({ ping: 1 });
-    console.log("Pinged your deployment. You successfully connected to MongoDB!");
+    // await client.db("admin").command({ ping: 1 });
+    // console.log("Pinged your deployment. You successfully connected to MongoDB!");
   } finally {
     // Ensures that the client will close when you finish/error
     // await client.close();
